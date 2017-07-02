@@ -1,0 +1,17 @@
+<% include partials/header %>
+
+
+    <h2>Hello, <%= title %>!</h2>
+    <ul>
+    <% subs.forEach(function(sub){ %>
+        <li>
+            <a href="<%= sub.feed %>">
+               <%= sub.name %> 
+            </a>
+        </li>
+   <% }) %>
+    </ul>
+
+    <% include forms/addFeed %>
+
+<% include partials/footer %>
