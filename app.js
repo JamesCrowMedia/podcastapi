@@ -2,9 +2,8 @@
 //---- Imports ----
 // Route requests
 let express = require('express');
-
+// Input validation
 let expressValidator = require('express-validator')
-
 // Parse incoming request bodies
 let bodyParser = require('body-parser'); 
 // Tools for file and directory paths
@@ -28,6 +27,31 @@ app.set('views', path.join(__dirname, 'views'))
 // Set Static Path
 app.use(express.static(path.join(__dirname, 'public')))
 
+// Validate User Input
+app.use(function(req, res, next){
+    res.locals.errors = null;
+    next();
+});
+
+app.use(expressValidator({
+  errorFormatter: function(param, msg, value) {
+      var namespace = param.split('.')
+      , root    = namespace.shift()
+      , formParam = root;
+
+    while(namespace.length) {
+      formParam += '[' + namespace.shift() + ']';
+    }
+    return {
+      param : formParam,
+      msg   : msg,
+      value : value
+    };
+  }
+}));
+
+
+// ---- TEMP Code for testing ----
 
 let subscriptions = [
     {
@@ -47,6 +71,9 @@ let subscriptions = [
     }
 ];
 
+
+// ---- Controllers ----
+
 // Home
 app.get('/', function(req, res){
     res.render('index',{
@@ -57,18 +84,26 @@ app.get('/', function(req, res){
 
 app.post('/addFeed', function(req, res){
 
-    let newFeed = {
-        id: 4,
-        name: 'New Podcast',
-        feed: req.body.feedURL
-    };
+    req.checkBody('feedURL', 'URL is required').isURL();
 
-    console.log(newFeed);
+    let errors = req.validationErrors(mapped=true);
 
-    subscriptions.push(newFeed);
+    if(errors){
+        console.log('errors');
+    } else {
+        let newFeed = {
+            id: 4,
+            name: 'New Podcast',
+            feed: req.body.feedURL
+        }; 
+        console.log('success');
+        console.log(newFeed);
+        subscriptions.push(newFeed);
+    }
 
     res.render('index',{
         title : 'Podcast Fan',
+        errors: errors,
         subs: subscriptions
     });
 });
