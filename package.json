@@ -3,9 +3,9 @@
   "version": "0.0.1",
   "description": "An API for managing user podcast feed subscriptions.",
   "main": "app.js",
-  "repository" :
-  { "type" : "git", 
-    "url" : "https://github.com/JamesCrowMedia/podcastapi.git"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JamesCrowMedia/podcastapi.git"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -14,7 +14,8 @@
     "body-parser": "*",
     "ejs": "^2.5.6",
     "express": "*",
-    "express-validator": "^3.2.0"
+    "express-validator": "^3.2.0",
+    "mongojs": "^2.4.0"
   },
   "author": "James Crow",
   "license": "ISC"
