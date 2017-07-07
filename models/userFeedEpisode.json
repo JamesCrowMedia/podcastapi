@@ -1,0 +1,11 @@
+{
+    "userId": "<ObjectId>",
+    "feedId": "<ObjectId>",
+    "episodeId": "<ObjectId>",
+    "created": "Date",
+    "viewTime": "0", // -1: Watched, 0: Unwatched
+    "favorited": false,
+    "showOnList": false,
+    "locked": false,
+    "userPlays": 0
+}

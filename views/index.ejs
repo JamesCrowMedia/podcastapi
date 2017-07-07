@@ -2,12 +2,31 @@
 
 
     <h2>Hello, <%= title %>!</h2>
+
     <ul>
-    <% subs.forEach(function(sub){ %>
+    <% feeds.forEach(function(feed){ %>
+        
         <li>
-            <a href="<%= sub.feed %>">
-               <%= sub.name %> 
+            <a href="<%= feed.siteLink %>">
+                <img src="<%= feed.imgURL %>" width="100px" />
             </a>
+        </li>
+        <li>
+        <a href="<%= feed.siteLink %>">
+            <%= feed.title %>
+        </a>
+            - <%= feed.owner.name %>
+        </li>    
+            <ul>
+                <li>
+                <%= feed.description.short %>
+                </li>
+                <li>
+                <a href="<%= feed.feedURL %>">
+                    RSS Feed
+                </a>
+                </li>
+            </ul>
         </li>
    <% }) %>
     </ul>

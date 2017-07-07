@@ -1,0 +1,12 @@
+{
+    "_id": "<ObjectId>",
+    "email": "foo@bar.com",
+    "feeds": [
+        "<ObjectId>",
+        "<ObjectId>",
+        "<ObjectId>"
+    ],
+    "created": "Date",
+    "lastActivity": "Date",
+    "isAdmin": false
+}

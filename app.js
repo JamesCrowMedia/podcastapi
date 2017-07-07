@@ -8,13 +8,32 @@ const expressValidator = require('express-validator')
 const bodyParser = require('body-parser'); 
 // Tools for file and directory paths
 const path = require('path');
-// ORM for MongoDB
-const mongojs = require('mongojs');
-const mongoDB = require('mongodb');
-var db = mongojs('podcastapi', ['users'])
+// Convert RSS data to JSON
+const request = require('request');
+const parsePodcast = require('node-podcast-parser');
 
+//---- Init App ----
 const app = express();
-let ObjectId = mongojs.ObjectId;
+
+//---- Set Up Database ----
+// ORM for MongoDB
+const mongoose = require('mongoose');
+mongoose.connect('mongodb://127.0.0.1:27017/podcastapi');
+let db = mongoose.connection;
+//Check for connection and db errors
+db.once('open', function(){
+    console.log('Connected to MongoDB...');
+});
+db.on('error', function(err){
+    console.log(err);
+});
+
+// db Collections
+let User = require('./models/user')
+let Feed = require('./models/feed')
+
+
+
 
 
 //---- Middleware ----
@@ -53,36 +72,20 @@ app.use(expressValidator({
   }
 }));
 
-
-// ---- TEMP Code for testing ----
-
-let subscriptions = [
-    {
-        id: 1,
-        name: 'Serious Inquiries Only',
-        feed: 'http://seriouspod.libsyn.com/'
-    },
-    {
-        id: 2,
-        name: 'Opening Arguments',
-        feed: 'http://openargs.libsyn.com/'
-    },
-    {
-        id: 3,
-        name: 'Reply All',
-        feed: 'http://feeds.megaphone.fm/replyall'
-    }
-];
-
-
 // ---- Controllers ----
 
 // Home
 app.get('/', function(req, res){
-    res.render('index',{
-        title : 'Podcast Fan',
-        subs: subscriptions
-    });
+    Feed.find({}, function(err, feeds){
+    if(err){
+      console.log(err);
+    } else {
+      res.render('index', {
+        title:'Podcasts',
+        feeds: feeds
+      });
+    }
+  });
 });
 
 app.post('/addFeed', function(req, res){
@@ -91,24 +94,50 @@ app.post('/addFeed', function(req, res){
 
     let errors = req.validationErrors(mapped=true);
 
-    if(errors){
-        console.log('errors');
-    } else {
-        let newFeed = {
-            id: 4,
-            name: 'New Podcast',
-            feed: req.body.feedURL
-        }; 
-        console.log('success');
-        console.log(newFeed);
-        subscriptions.push(newFeed);
-    }
+    let feedData = {};
+    let feedErrors = {};
+    
+    request(req.body.feedURL, (err, res, data) => {
+        if (err) {
+            console.error('Network error', err);
+            feedErrors = err;
+            return;
+        };
+        
+        parsePodcast(data, (err, data) => {
+            if (err) {
+                console.error('Parsing error', err);
+                feedErrors = err;
+                return;
+            };
+            feedData = data;
+            console.log('Title test print 1', feedData.title);
+            
+            let newFeed = new Feed();
+            console.log('Created a new feed');
+            console.log('Title test print 2', feedData.title);
+            newFeed.title = feedData.title;
+            newFeed.feedURL = req.body.feedURL;
+            newFeed.siteLink = feedData.link;
+            newFeed.imgURL = feedData.image;
+            newFeed.description = feedData.description;
+            newFeed.language = feedData.language;
+            newFeed.categories = feedData.categories;
+            newFeed.owner = feedData.owner;
 
-    res.render('index',{
-        title : 'Podcast Fan',
-        errors: errors,
-        subs: subscriptions
+            console.log('Print Feed', newFeed);
+
+            newFeed.save(function(err){
+                if(err){
+                    console.log('Save Error', err);
+                    return;
+                };
+
+            });
+        });
     });
+
+    res.redirect('/');
 });
 
 app.get('/test', function(req, res){
@@ -117,21 +146,25 @@ app.get('/test', function(req, res){
 
 app.get('/users', function(req, res){
     
-    db.users.find(function(err, docs){
-        // console.log("Test", err, docs);
-        res.render('users', {
-            title : 'Podcast Fans',
-            users: docs
-        })
-    });
+    User.find({}, function(err, allUsers){
+        if(err){
+            console.log(err);
+        } else {
+            console.log(allUsers);
+            res.render('users', {
+                title : 'Podcast Fans',
+                users: allUsers
+            });
+        }
+    }); 
 });
 
 app.post('/users', function(req, res){
 
-    req.checkBody('username', 'A valid username is required').isLength({min: 6, max: 20});
-    req.checkBody('password', 'A valid password is required').isLength({min: 6, max: 50});
-    req.checkBody('verify', 'Your passwords must match').isLength({min: 6, max: 50});
-    req.checkBody('email', 'A valid email is required').isLength({min: 6, max: 30});
+    // req.checkBody('username', 'A valid username is required').isLength({min: 6, max: 20});
+    // req.checkBody('password', 'A valid password is required').isLength({min: 6, max: 50});
+    // req.checkBody('verify', 'Your passwords must match').isLength({min: 6, max: 50});
+    // req.checkBody('email', 'A valid email is required').isLength({min: 6, max: 30});
 
     let pw_compare = req.body.password === req.body.verify;
 
@@ -147,26 +180,6 @@ app.post('/users', function(req, res){
         }; 
         db.users.insert(newUser);
     }
-
-    db.users.find(function(err, docs){
-        // console.log("Test", err, docs);
-        res.render('users', {
-            title : 'Podcast Fans',
-            errors: errors,
-            users: docs
-        })
-    });
-});
-
-app.delete('/users/delete/:id', function(req, res){
-    console.log(req.params.id);
-    db.users.remove({_id: ObjectId(req.params.id), function(err, result){
-        if(err){
-            console.log(err);
-        } else {
-            res.redirect('/users');
-        };
-    }});
 });
 
 app.listen(3000, function(){
