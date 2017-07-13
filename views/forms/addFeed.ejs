@@ -1,6 +1,6 @@
 <strong>Add Feed</strong>
-
-<form method="post" action="addFeed">
+<%- messages('my_message_template', locals) %>
+<form method="post" action="/feeds/add">
     <label>Feed URL:</label><br/>
     <% if(errors){ %>
         <div>

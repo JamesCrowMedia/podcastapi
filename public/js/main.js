@@ -18,3 +18,5 @@ function deleteUser(){
         return flase;
     }
 };
+
+$(".alert").alert()

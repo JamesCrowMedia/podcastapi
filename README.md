@@ -14,3 +14,4 @@ validator.js - https://github.com/chriso/validator.js
 Other:
 npmjs.com - mongojs - https://www.npmjs.com/package/mongojs
 MongoDB Docs - https://docs.mongodb.com
+Best Practices for Designing a Pragmatic RESTful API - http://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api

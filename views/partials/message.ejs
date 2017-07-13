@@ -1,0 +1,10 @@
+<div id="messages" class="justify-content-center container">
+
+<% Object.keys(messages).forEach(function (type) { %>
+   <ul class="alert alert-<%= type %> list pl-5 alert-dismissible fade show">
+  <% messages[type].forEach(function (message) { %>
+    <li><%= message %></li>
+  <% }) %>
+  </ul>
+<% }) %>
+</div>

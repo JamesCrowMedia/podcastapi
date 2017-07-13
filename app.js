@@ -2,12 +2,19 @@
 //---- Imports ----
 // Route requests
 const express = require('express');
+// User session tools
+const session = require('express-session');
 // Input validation
-const expressValidator = require('express-validator')
+const expressValidator = require('express-validator');
+// Session messages
+const flash = require('connect-flash');
 // Parse incoming request bodies
-const bodyParser = require('body-parser'); 
+const bodyParser = require('body-parser');
 // Tools for file and directory paths
 const path = require('path');
+// System for managing user logins
+const passport = require('passport');
+
 // Convert RSS data to JSON
 const request = require('request');
 const parsePodcast = require('node-podcast-parser');
@@ -17,9 +24,10 @@ const app = express();
 
 //---- Set Up Database ----
 // ORM for MongoDB
+const dBconfig = require('./config/database');
 const mongoose = require('mongoose');
-mongoose.connect('mongodb://127.0.0.1:27017/podcastapi');
-let db = mongoose.connection;
+mongoose.connect(dBconfig.database);
+let db = mongoose.connection
 //Check for connection and db errors
 db.once('open', function(){
     console.log('Connected to MongoDB...');
@@ -29,9 +37,11 @@ db.on('error', function(err){
 });
 
 // db Collections
-let User = require('./models/user')
-let Feed = require('./models/feed')
+let User = require('./models/user');
+let Feed = require('./models/feed');
 
+// Secrets kept out of public repo
+const secrets = require('./secrets/app_SECRET');
 
 
 
@@ -40,14 +50,26 @@ let Feed = require('./models/feed')
 
 // Body Parser
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: false}))
+app.use(bodyParser.urlencoded({extended: false}));
 
 // View Engine
+// TODO: Replace EJS with something like pug
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'))
+app.set('views', path.join(__dirname, 'views'));
 
-// Set Static Path
-app.use(express.static(path.join(__dirname, 'public')))
+// User Sessions
+app.use(session({
+  secret: secrets.session,
+  resave: true,
+  saveUninitialized: true,
+}));
+
+// Express Messages
+app.use(require('connect-flash')());
+app.use(function (req, res, next) {
+  res.locals.messages = require('express-messages')(req, res);
+  next();
+});
 
 // Validate User Input
 app.use(function(req, res, next){
@@ -57,9 +79,9 @@ app.use(function(req, res, next){
 
 app.use(expressValidator({
   errorFormatter: function(param, msg, value) {
-      var namespace = param.split('.')
-      , root    = namespace.shift()
-      , formParam = root;
+      var namespace = param.split('.'), 
+      root    = namespace.shift(), 
+      formParam = root;
 
     while(namespace.length) {
       formParam += '[' + namespace.shift() + ']';
@@ -72,115 +94,40 @@ app.use(expressValidator({
   }
 }));
 
+//Passport Config
+require('./config/passport')(passport)
+app.use(passport.initialize());
+app.use(passport.session());
+app.get('*', function(req, res, next){
+    res.locals.user = req.user || null;
+    next();
+});
+
+
+// Set Static Path
+app.use(express.static(path.join(__dirname, 'public')))
+
+
+
 // ---- Controllers ----
 
 // Home
 app.get('/', function(req, res){
-    Feed.find({}, function(err, feeds){
-    if(err){
-      console.log(err);
-    } else {
-      res.render('index', {
-        title:'Podcasts',
-        feeds: feeds
-      });
-    }
-  });
+    res.redirect('/feeds');
 });
 
-app.post('/addFeed', function(req, res){
+// Routes
+let feedsRoute = require('./routes/feeds');
+app.use('/feeds', feedsRoute);
 
-    req.checkBody('feedURL', 'URL is required').isURL();
+let userRoute = require('./routes/user');
+app.use('/user', userRoute);
 
-    let errors = req.validationErrors(mapped=true);
+let api_v1Route = require('./routes/api_v1');
+app.use('/v1', api_v1Route);
 
-    let feedData = {};
-    let feedErrors = {};
-    
-    request(req.body.feedURL, (err, res, data) => {
-        if (err) {
-            console.error('Network error', err);
-            feedErrors = err;
-            return;
-        };
-        
-        parsePodcast(data, (err, data) => {
-            if (err) {
-                console.error('Parsing error', err);
-                feedErrors = err;
-                return;
-            };
-            feedData = data;
-            console.log('Title test print 1', feedData.title);
-            
-            let newFeed = new Feed();
-            console.log('Created a new feed');
-            console.log('Title test print 2', feedData.title);
-            newFeed.title = feedData.title;
-            newFeed.feedURL = req.body.feedURL;
-            newFeed.siteLink = feedData.link;
-            newFeed.imgURL = feedData.image;
-            newFeed.description = feedData.description;
-            newFeed.language = feedData.language;
-            newFeed.categories = feedData.categories;
-            newFeed.owner = feedData.owner;
 
-            console.log('Print Feed', newFeed);
 
-            newFeed.save(function(err){
-                if(err){
-                    console.log('Save Error', err);
-                    return;
-                };
-
-            });
-        });
-    });
-
-    res.redirect('/');
-});
-
-app.get('/test', function(req, res){
-
-});
-
-app.get('/users', function(req, res){
-    
-    User.find({}, function(err, allUsers){
-        if(err){
-            console.log(err);
-        } else {
-            console.log(allUsers);
-            res.render('users', {
-                title : 'Podcast Fans',
-                users: allUsers
-            });
-        }
-    }); 
-});
-
-app.post('/users', function(req, res){
-
-    // req.checkBody('username', 'A valid username is required').isLength({min: 6, max: 20});
-    // req.checkBody('password', 'A valid password is required').isLength({min: 6, max: 50});
-    // req.checkBody('verify', 'Your passwords must match').isLength({min: 6, max: 50});
-    // req.checkBody('email', 'A valid email is required').isLength({min: 6, max: 30});
-
-    let pw_compare = req.body.password === req.body.verify;
-
-    let errors = req.validationErrors(mapped=true);
-
-    if(errors || !pw_compare){
-        console.log('errors', 'pw_compare:', pw_compare);
-    } else {
-        let newUser = {
-            username: req.body.username,
-            password: req.body.password,
-            email: req.body.email
-        }; 
-        db.users.insert(newUser);
-    }
-});
 
 app.listen(3000, function(){
     console.log('Server started on Port 3000...');

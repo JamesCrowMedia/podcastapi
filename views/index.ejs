@@ -1,36 +1,5 @@
 <% include partials/header %>
-
-
-    <h2>Hello, <%= title %>!</h2>
-
-    <ul>
-    <% feeds.forEach(function(feed){ %>
-        
-        <li>
-            <a href="<%= feed.siteLink %>">
-                <img src="<%= feed.imgURL %>" width="100px" />
-            </a>
-        </li>
-        <li>
-        <a href="<%= feed.siteLink %>">
-            <%= feed.title %>
-        </a>
-            - <%= feed.owner.name %>
-        </li>    
-            <ul>
-                <li>
-                <%= feed.description.short %>
-                </li>
-                <li>
-                <a href="<%= feed.feedURL %>">
-                    RSS Feed
-                </a>
-                </li>
-            </ul>
-        </li>
-   <% }) %>
-    </ul>
-
-    <% include forms/addFeed %>
-
+<div class="container">
+    <%- messages('./partials/message', locals) %>
+</div>
 <% include partials/footer %>
