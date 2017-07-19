@@ -10,7 +10,7 @@ const Episode = require('./episode');
 let userSchema = Schema({
     username: { type: String, required: true },
     password: { type: String, required: true },
-    feeds: { type: [Schema.Types.ObjectId], default: [] },
+    feeds: { type: [{ type: Schema.Types.ObjectId, ref: 'Feed'}], default: [] },
     created: { type: Date, default: Date.now },
     lastActivity: { type: Date, default: Date.now },
     isAdmin: { type: Boolean, default: false },
@@ -33,15 +33,24 @@ module.exports.GetUser = function(userId, callback){
     });
 };
 
-module.exports.LinkUserToEpisode = function(user, feed, episode){
-    let newUserFeedEp = new UserFeedEp();
-    newUserFeedEp.user = user;
-    newUserFeedEp.feed = feed;
-    newUserFeedEp.episode = episode;
+module.exports.LinkUserToEpisode = function(feed, episode, user){
+    
+    UserFeedEp.findOne({ user: user, episode: episode }, function(err, linkExists){
+        if(!linkExists){
 
-    newUserFeedEp.save(function(err){
-        if(err){
-            console.log(err);
-        };  
+            let newUserFeedEp = new UserFeedEp();
+            newUserFeedEp.user = user;
+            newUserFeedEp.feed = feed;
+            newUserFeedEp.episode = episode;
+
+            console.log('newUserFeedEp _id: '+newUserFeedEp.id);
+            newUserFeedEp.save(function(err){
+                if(err){
+                    console.log("Link error", err);
+                };  
+            });
+        } else {
+                console.log('Link already exists')
+        }
     });
 };

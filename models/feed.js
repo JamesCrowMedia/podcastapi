@@ -6,6 +6,10 @@ let Episode = require('./episode');
 // Convert RSS data to JSON
 const request = require('request');
 const parsePodcast = require('node-podcast-parser');
+var podcatcher = require('podcatcher');
+
+// const FeedParser = require('feedparser');
+const fs = require('fs');
 
 let feedSchema = Schema({
     title: { type: String, required: true },
@@ -33,61 +37,83 @@ let feedSchema = Schema({
 
 });
 
+
 let Feed = module.exports = mongoose.model('Feed', feedSchema, 'feeds');
 
 module.exports.GetAll = function(callback){
     Feed.find({});
 };
 
-module.exports.ParseFeed = function(url, err, req, mainRes, callback){
-    request(url, (err, res, data) => {
+module.exports.ParseFeed = function(url, exitCallback, callback){
+    podcatcher.getAll(url, function(err, meta, articles) {
         if (err) {
-            console.error('Network error', err);
-            req.flash('warning', 'Could not retrieve feed');
-            mainRes.redirect('/feeds');
-            return;
-        };
-        
-        parsePodcast(data, (err, data) => {
-            if (err) {
-                console.error('Parsing error', err);
-                req.flash('warning', 'Invalid feed data');
-                mainRes.redirect('/feeds');
-                return;
-            };
+            console.log(err);
+            exitCallback('danger', "Invalid feed data");
+        } else {
+            console.log(meta.title);
+            callback(meta, articles, url);
+        }
+    });
+}
+
+module.exports.AddFeed = function(meta, articles, feedURL, user, callback){
+
+    let urlCatch = meta.xmlurl || meta.xmlUrl || feedURL;
+    console.log(urlCatch);
+    Feed.findOne({'feedURL': urlCatch}, function(err, feedExists){
+
+        if(!feedExists){
+            try{
+                let newFeed = new Feed();
+                console.log('Created a new feed');
+                newFeed.title = meta.title;
+                newFeed.feedURL = urlCatch;
+                newFeed.siteLink = meta.link;
+                newFeed.imgURL = meta.image.url;
+                newFeed.description.long = meta.description;
+                newFeed.language = meta.language;
+                newFeed.categories = meta.categories;
+                newFeed.owner.name = meta.author;
+
+                console.log('Print Feed', newFeed);
+
+                newFeed.save(function(err){
+                    console.log('Print URL', newFeed.FeedURL);
+                    if(err) throw err;
+                   
+                    user.feeds.push(newFeed);
+
+                    user.save(function(err){
+                        if(err) throw err;
+                        callback(newFeed, articles, feedURL);
+                    });
+                });                
+
+            } catch(e) {
+                console.log('Feed creation failure.' + e);
+            }
+        } else {
+            console.log('Feed already exists');
             
-            callback(data);
-        });
+            user.feeds.push(feedExists);
+
+            user.save(function(err){
+                if(err) throw err;
+                callback(feedExists, articles, feedURL);
+            });
+        }
     });
+
 };
 
-module.exports.AddFeed = function(data, feedURL, userId, callback){
-    let newFeed = new Feed();
-    console.log('Created a new feed');
-    newFeed.title = data.title;
-    newFeed.feedURL = feedURL;
-    newFeed.siteLink = data.link;
-    newFeed.imgURL = data.image;
-    newFeed.description = data.description;
-    newFeed.language = data.language;
-    newFeed.categories = data.categories;
-    newFeed.owner = data.owner;
-
-    console.log('Print Feed', newFeed);
-
-    newFeed.save(function(err){
-        Episode.AddEpisodes(data.episodes, newFeed, userId, callback(err));
-    });
-};
-
-module.exports.UpdateFeed = function(url, err, req, res, callback){
-    Feed.findOne({feedURL: url}, function(err, feed){
-        console.log(err);
-        Feed.ParseFeed(url, err, req, res, function(data){
-            Episode.AddEpisodes(data.episodes, feed, userId, callback(err))
-        });
-    });
-};
+// module.exports.UpdateFeed = function(url, err, req, res, callback){
+//     Feed.findOne({feedURL: url}, function(err, feed){
+//         console.log(err);
+//         Feed.ParseFeed(url, err, req, res, function(data){
+//             Episode.AddEpisodes(data.episodes, feed, userId, callback(err))
+//         });
+//     });
+// };
 
 // TODO: Figure out why owner doesn't always parse
 // TODO: Make a constructor and move code out of app.js
