@@ -1,0 +1,46 @@
+<script>
+$(document).ready(function() {
+       
+    $("button").click(function() {
+        var value = $(this).attr("value");
+        console.log($(this).val());
+        console.log(value);
+        var domElement = $('<audio id="audioPlayer" autoplay controls src="{0}" type="audio/mp3" />'.replace('{0}', value));
+        $(this).replaceWith(domElement);
+    });
+    
+});
+</script>
+
+<!--<audio id="audioPlayer" controls src="<%= episodes[0].episode.fileUrl %>" type="audio/mp3" />-->
+
+<section>
+<ul class="list-unstyled">
+<% episodes.forEach(function(episode){ %>
+    <li class="media">
+        <div class="media-body">
+            <div class="row justify-content-between">
+                <span class="feedInfo">
+                        <span class="mt-0 mb-2">
+                            <strong class="title-episode">
+                                <%= episode.episode.title %>                         
+                            </strong>
+                        </span>
+                        <span class="otherInfo">
+                            - 
+                            <%= episode.episode.published %>
+                        </span>
+                </span>
+                    <button name="play" value="<%= episode.episode.fileUrl %>" class="btn btn-outline-warning btn-sm">
+                        Play
+                    </button>
+            </div>
+                <blockquote class="blockquote text-muted lead">
+                    <%= episode.episode.description %>
+                </blockquote>
+        </div>
+    </li>
+    <br/>
+ <% }) %> 
+</ul>
+</section>    

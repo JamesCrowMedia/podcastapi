@@ -4,6 +4,7 @@
 const express = require('express');
 // User session tools
 const session = require('express-session');
+const MongoStore = require('connect-mongo')(session);
 // Input validation
 const expressValidator = require('express-validator');
 // Session messages
@@ -14,6 +15,8 @@ const bodyParser = require('body-parser');
 const path = require('path');
 // System for managing user logins
 const passport = require('passport');
+// Allow Cross-Origin Resource Sharing
+const cors = require('cors')
 
 // Convert RSS data to JSON
 const request = require('request');
@@ -47,10 +50,16 @@ const secrets = require('./secrets/app_SECRET');
 
 
 //---- Middleware ----
+// CORS
+const corsOptions = {
+    origin: 'http://localhost:3001',
+    optionsSuccessStatus: 200
+}
+
 
 // Body Parser
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.urlencoded({extended: true}));
 
 // View Engine
 // TODO: Replace EJS with something like pug
@@ -62,6 +71,7 @@ app.use(session({
   secret: secrets.session,
   resave: true,
   saveUninitialized: true,
+  store: new MongoStore({url: dBconfig.database})
 }));
 
 // Express Messages
@@ -106,6 +116,7 @@ app.get('*', function(req, res, next){
 
 // Set Static Path
 app.use(express.static(path.join(__dirname, 'public')))
+app.use('/bower_components',  express.static(__dirname + '/bower_components'));
 
 
 
@@ -124,7 +135,10 @@ let userRoute = require('./routes/user');
 app.use('/user', userRoute);
 
 let api_v1Route = require('./routes/api_v1');
-app.use('/v1', api_v1Route);
+app.use('/v1', cors(corsOptions), api_v1Route);
+
+// let clientRoute = require('./routes/clients');
+// app.use('/clients', clientRoute);
 
 
 

@@ -1,7 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
+const OAuthStrategy = require('passport-oauth').OAuth2Strategy;
 const bcrypt = require('bcryptjs');
+
+// passport.use('provider', new OAuth2Strategy({
+//     authorizationURL: 'https:://127.0.0.1:3000/oauth2/authorize',
+//     tokenURL: 'https://127.0.0.1:3000/oauth2/token',
+//     clientID: '123-456-789',
+//     clientSecret: 'shhh-its-a-secret',
+//     callbackURL: 'https://www.example.com/auth/provider/callback'
+//   },
+//   function(accessToken, refreshToken, profile, done) {
+//     User.findOrCreate(..., function(err, user) {
+//       done(err, user);
+//     });
+//   }
+// ));
 
 let user = require('../models/user');
 
@@ -96,5 +111,7 @@ router.post('/signup', function(req, res){
         };
     });
 });  
+
+
 
 module.exports = router;

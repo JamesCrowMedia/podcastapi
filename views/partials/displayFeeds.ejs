@@ -3,7 +3,7 @@
 <ul class="list-unstyled">
 <% feeds.forEach(function(feed){ %>
     <li class="media">
-        <a class="media-left media-center" href="/feed/details/<%= feed._id %>">
+        <a class="media-left media-center" href="/feeds/episodes/<%= feed._id %>">
             <img class="d-flex mr-3 img-thumbnail img-fluid podcast-img" src="<%= feed.imgURL %>" alt="Image for <%= feed.title %>" />
         </a>
         <div class="media-body">
@@ -11,26 +11,26 @@
                 <span class="feedInfo">
                     <span class="mt-0 mb-2">
                         <strong class="title">
-                        <a href="/feed/details/<%= feed._id %>">
+                        <a href="/feeds/episodes/<%= feed._id %>">
                         <%= feed.title %>
                         </a>
                         </strong>
                     </span>
                     <span class="otherInfo">
                         - 
-                        <% if(feed.owner.name != '') { 
-                            %><%= feed.owner.name %> - 
+                        <% if(feed.owner.name != '') { %>
+                            <%= feed.owner.name %> - 
                         <% } %>
                         <a href="<%= feed.feedURL %>">
                             RSS
                         </a>
                     </span>
                 </span>
-                <a href="/feed/unsubscribe/<%= feed._id %>" class="unsubscribe align-self-end">
-                    <button type="button" class="btn btn-outline-warning btn-sm">
+                <form method="post" action="/feeds/unsubscribe/<%= feed._id %>" class="unsubscribe align-self-end">
+                    <button name="unsubscribe" value="true" type="submit" class="btn btn-outline-warning btn-sm">
                         Unsubscribe
                     </button>
-                </a>
+                </form>
             </div>
                 <blockquote class="blockquote text-muted lead">
                     <%= feed.description.long.substring(0, 200) %><% if(feed.description.long.length > 200){ %> ... <% } %>

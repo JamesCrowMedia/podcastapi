@@ -13,6 +13,11 @@ html {
     margin-left: 18px;
 }
 
+.title-episode {
+    font-size: 18px;
+    margin-left: 2px;
+}
+
 .feedInfo {
     margin-bottom: 10px;
 }

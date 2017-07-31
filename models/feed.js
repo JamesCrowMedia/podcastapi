@@ -48,7 +48,7 @@ module.exports.ParseFeed = function(url, exitCallback, callback){
     podcatcher.getAll(url, function(err, meta, articles) {
         if (err) {
             console.log(err);
-            exitCallback('danger', "Invalid feed data");
+            exitCallback('danger', "Invalid feed data", '/feeds');
         } else {
             console.log(meta.title);
             callback(meta, articles, url);
@@ -56,7 +56,7 @@ module.exports.ParseFeed = function(url, exitCallback, callback){
     });
 }
 
-module.exports.AddFeed = function(meta, articles, feedURL, user, callback){
+module.exports.Subscribe = function(meta, articles, feedURL, user, callback){
 
     let urlCatch = meta.xmlurl || meta.xmlUrl || feedURL;
     console.log(urlCatch);
@@ -94,8 +94,13 @@ module.exports.AddFeed = function(meta, articles, feedURL, user, callback){
             }
         } else {
             console.log('Feed already exists');
+            let userFeeds = user.feeds;
+            if(userFeeds.indexOf(feedExists._id) === -1 ){
+                user.feeds.push(feedExists);
+            } else {
+                console.log('User already subscribed to ' + feedExists._id)
+            }
             
-            user.feeds.push(feedExists);
 
             user.save(function(err){
                 if(err) throw err;
@@ -105,6 +110,25 @@ module.exports.AddFeed = function(meta, articles, feedURL, user, callback){
     });
 
 };
+
+
+module.exports.Unsubscribe = function(user, feedId, exitCallback){
+    let oldFeeds = user.feeds;
+        let newFeeds = oldFeeds.filter(function(i) {
+	        return i != feedId;
+        });
+
+        user.feeds = newFeeds;
+
+        user.save(function(err){
+                if(err){
+                    console.log("Unsubscribe error", err);
+                };  
+                exitCallback('success', "User unsubscribed from feed", '/feeds');
+            });
+}
+
+
 
 // module.exports.UpdateFeed = function(url, err, req, res, callback){
 //     Feed.findOne({feedURL: url}, function(err, feed){

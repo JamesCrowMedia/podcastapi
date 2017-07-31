@@ -7,81 +7,68 @@ let User = require('../models/user');
 let Episode = require('../models/episode');
 
 router.get('/', ensureAuthenticated, function(req, res){
-    Feed.find({}, function(err, feeds){
-    if(err){
-      console.log(err);
-    } else {
-      res.render('./feeds/viewFeeds', {
-        title:'Podcasts',
-        feeds: feeds
-      });
-    }
+    let userId = req.user._id;
+    User.findOne({_id: userId})
+    .populate('feeds')
+    .exec(function(err, user){
+
+        if(err){
+        console.log(err);
+        } else {
+        res.render('./feeds/viewFeeds', {
+            title:'Podcasts',
+            feeds: user.feeds
+        });
+        }
   });
 });
 
-router.get('/add', ensureAuthenticated, function(req, res){
+router.get('/episodes/:feedId', ensureAuthenticated, function(req, res){
+    const userId = req.user._id;
+    const feedId = req.params.feedId;
+
+    let exitCallback = function(messageType, message, route){
+        req.flash(messageType, message);
+        res.redirect(route);
+    }
+    Feed.findById(feedId, function(err, feed){
+        if(err){
+                req.flash('warning', 'Error finding feed');
+                res.redirect('/feeds');
+            }
+        User.findById(userId, function(err, user){
+            if(err){
+                req.flash('warning', 'Error finding user');
+                res.redirect('/user/logout');
+            }
+            User.GetEpisodes(user, feed, exitCallback, function(feed, episodes){
+                res.render('./feeds/viewEpisodes', {
+                    episodes: episodes
+                });
+            });
+        });
+    });
+});
+
+router.get('/subscribe', ensureAuthenticated, function(req, res){
 
     const userId = req.user._id;
 
     res.render('./forms/addfeed');
 });
 
-// router.post('/add', function(req, res){
-//     let mainRes = res;
-//     let url = req.body.feedURL;
-//     let userId = req.user._id;
-//     req.check('feedURL', 'URL is required').notEmpty().isURL();
-
-//     let errors = req.validationErrors(mapped=true);
-
-//      if(errors){
-//         console.log('Invalid URL');
-//         req.flash('warning', 'Invalid URL');
-//         mainRes.redirect('/');
-//     };
-
-//     // TODO: Refactor with promises
-//     Feed.find({ 'feedURL': req.body.feedURL }, function(err, oldFeed){
-
-//         if(err){
-//             console.log('Feed add error');
-//             req.flash('warning', 'Something went wrong');
-//             mainRes.redirect('/feeds');
-//         };
-
-
-//         if(oldFeed.length === 0){
-//             Feed.ParseFeed(req.body.feedURL, err, req, mainRes, function(data){
-//                 Feed.AddFeed(data, req.body.feedURL, userId, function(err){
-//                     if(err){
-//                         console.log('Save Error', err);
-//                         req.flash('warning', 'Unable to save feed to database');
-//                         mainRes.redirect('/feeds');
-//                         return;
-//                     } else {
-//                         req.flash('success', 'New feed added to database.');
-//                         console.log(res.flash);
-//                         mainRes.redirect('/feeds');
-//                     };
-//                 });
-//             });
-//         } else {
-//             Feed.UpdateFeed(url, err, req, mainRes, userId, function(){
-//                 req.flash('success', 'User subscribed to feed');
-//                 mainRes.redirect('/feeds');
-//             });
-//         };
-//     }); 
-    
-// });
-
-router.post('/add', ensureAuthenticated, function(req, res){
+router.post('/subscribe', ensureAuthenticated, function(req, res){
 
     let incomingUrl = req.body.feedURL;
     let userId = req.user._id;
     req.check('feedURL', 'URL is required').notEmpty().isURL();
 
     //let errors = req.validationErrors(mapped=true);
+
+    let exitCallback = function(messageType, message, route){
+        req.flash(messageType, message);
+        res.redirect(route);
+    }
 
     req.getValidationResult().then(function(result) {
         // do something with the validation result  
@@ -91,15 +78,10 @@ router.post('/add', ensureAuthenticated, function(req, res){
             res.redirect('/feeds');
         } else {
 
-            let exitCallback = function(messageType, message) {
-                req.flash(messageType, message);
-                res.redirect('/feeds');
-            }
-
             User.findOne({_id: userId}, function(err, user){
-                Feed.ParseFeed(incomingUrl, exitCallback, function(meta, articles, feedURL, exitCallback){
+                Feed.ParseFeed(incomingUrl, exitCallback, function(meta, articles, feedURL){
 
-                    Feed.AddFeed(meta, articles, feedURL, user, function(newFeed, articles, feedURL){
+                    Feed.Subscribe(meta, articles, feedURL, user, function(newFeed, articles, feedURL){
 
                         Episode.AddEpisodes(newFeed, articles, feedURL, exitCallback, function(feed, episode){
             
@@ -109,6 +91,28 @@ router.post('/add', ensureAuthenticated, function(req, res){
                 });
             });
         }
+    });
+});
+
+router.post('/unsubscribe/:feedId', ensureAuthenticated, function(req, res){
+    const userId = req.user._id;
+    const feedId = req.params.feedId;
+
+    let exitCallback = function(messageType, message, route){
+        req.flash(messageType, message);
+        res.redirect(route);
+    }
+
+
+    User.findById(userId, function(err, user){
+        if(err){
+            req.flash('warning', 'Error unsubscribing feed');
+            res.redirect('/feeds');
+        }
+
+        
+        Feed.Unsubscribe(user, feedId, exitCallback);
+
     });
 });
 
@@ -124,54 +128,3 @@ function ensureAuthenticated(req, res, next){
 }
 
 module.exports = router;
-
-
-
-/*
-request(req.body.feedURL, (err, res, data) => {
-        if (err) {
-            console.error('Network error', err);
-            req.flash('warning', 'Could not retrieve feed');
-            mainRes.redirect('/feeds');
-            return;
-        };
-        
-        parsePodcast(data, (err, data) => {
-            if (err) {
-                console.error('Parsing error', err);
-                req.flash('warning', 'Invalid feed data');
-                mainRes.redirect('/feeds');
-                return;
-            };
-
-            console.log('Title test print 1', data.title);
-            
-            let newFeed = new Feed();
-            console.log('Created a new feed');
-            newFeed.title = data.title;
-            newFeed.feedURL = req.body.feedURL;
-            newFeed.siteLink = data.link;
-            newFeed.imgURL = data.image;
-            newFeed.description = data.description;
-            newFeed.language = data.language;
-            newFeed.categories = data.categories;
-            newFeed.owner = data.owner;
-
-            console.log('Print Feed', newFeed);
-
-            newFeed.save(function(err){
-                if(err){
-                    console.log('Save Error', err);
-                    req.flash('warning', 'Unable to save feed to database');
-                    mainRes.redirect('/feeds');
-                    return;
-                } else {
-                    req.flash('success', 'New feed added to database.');
-                    console.log(res.flash);
-                    mainRes.redirect('/feeds');
-                };
-
-            });
-        });
-    });
-*/

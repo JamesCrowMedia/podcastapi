@@ -62,7 +62,7 @@ module.exports.AddEpisodes = function(newFeed, articles, feedURL, exitCallback, 
             console.log(episode);
         }
     });
-    exitCallback('success', 'You have been subscribed to the podcast');
+    exitCallback('success', 'You have been subscribed to the podcast', '/feeds');
 };
 
 // module.exports.GetAllEpisodes = function(feedId, callback){

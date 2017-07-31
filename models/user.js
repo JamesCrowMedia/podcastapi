@@ -42,6 +42,8 @@ module.exports.LinkUserToEpisode = function(feed, episode, user){
             newUserFeedEp.user = user;
             newUserFeedEp.feed = feed;
             newUserFeedEp.episode = episode;
+            newUserFeedEp.published = Date.parse(episode.published);
+
 
             console.log('newUserFeedEp _id: '+newUserFeedEp.id);
             newUserFeedEp.save(function(err){
@@ -54,3 +56,20 @@ module.exports.LinkUserToEpisode = function(feed, episode, user){
         }
     });
 };
+
+module.exports.GetEpisodes = function(user, feed, exitCallback, callback){
+    UserFeedEp.find({ user: user, feed: feed })
+        .sort( {'published': -1} )
+        .populate('episode')
+        .exec(function(err, episodes){
+            if(err){
+                exitCallback('warning', 'Unable to find episodes', '/feeds');
+            }
+
+        if(episodes){
+            callback(feed, episodes);
+        } else {
+            exitCallback('warning', 'Unable to find episodes', '/feeds');
+        }
+    });
+}

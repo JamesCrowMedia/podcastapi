@@ -1,12 +1,16 @@
+<% include ../partials/header %>
+<div class="container">
 <strong>Add Feed</strong>
 <%- messages('my_message_template', locals) %>
-<form method="post" action="/feeds/add">
-    <label>Feed URL:</label><br/>
-    <% if(errors){ %>
-        <div>
-            <%= errors.feedURL.msg %>
-        </div>
-    <% } %>
-    <input type="text" name="feedURL" />
-    <input type="submit" value="submit">
-</form>
+
+    <form method="post" action="/feeds/subscribe">
+        <label>Feed URL:</label><br/>
+        <% if(errors){ %>
+            <div>
+                <%= errors.feedURL.msg %>
+            </div>
+        <% } %>
+        <input type="text" name="feedURL" />
+        <input type="submit" value="submit">
+    </form>
+</div>
